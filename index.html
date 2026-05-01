@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Service Pro</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+
+    <style>
+        :root { --primary: #0071e3; --danger: #ff3b30; --bg: #000; --card: #1c1c1e; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background: var(--bg); color: #fff; text-align: center; margin: 0; padding: 20px; }
+        .card { background: var(--card); padding: 25px; border-radius: 20px; max-width: 500px; margin: auto; position: relative; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 12px; border: none; font-size: 16px; box-sizing: border-box; }
+        input, select { background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; }
+        button { background: var(--primary); color: #fff; font-weight: bold; cursor: pointer; }
+        
+        /* تنسيق الإيصال - مصلح */
+        .receipt { background: white; color: black; padding: 20px 15px; border-radius: 15px; margin-top: 15px; border: 1px solid #ddd; position: relative; overflow: hidden; /* لمنع الخروج عن الإطار */ }
+        
+        /* تنسيق العداد المتطور - تم إصلاح المحاذاة والمسافات */
+        .timer-container { display: flex; justify-content: center; gap: 8px; margin: 20px auto; direction: ltr; width: 100%; max-width: 380px; /* لضمان التوسيط */ }
+        .timer-segment { background: #f4f4f4; padding: 10px; border-radius: 8px; flex: 1; min-width: 65px; max-width: 80px; border-bottom: 3px solid var(--primary); text-align: center; box-sizing: border-box; }
+        .timer-num { display: block; font-size: 22px; font-weight: 900; color: #000; }
+        .timer-label { font-size: 11px; color: #666; font-weight: bold; }
+
+        .close-btn { position: absolute; top: 15px; left: 15px; background: var(--danger); width: 35px; height: 35px; border-radius: 50%; line-height: 35px; cursor: pointer; display: none; font-weight: bold; color: white; border: 2px solid white; box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+        table { width: 100%; margin-top: 20px; border-collapse: collapse; font-size: 14px; background: #2c2c2e; border-radius: 10px; overflow: hidden; }
+        th, td { border: 1px solid #3a3a3c; padding: 12px; }
+        .btn-delete { background: var(--danger) !important; margin-top: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <div id="exitBtn" class="close-btn" onclick="clientExit()">X</div>
+
+    <div id="admin-ui">
+        <h2 id="title">📱 لوحة الإدارة</h2>
+        <input id="name" placeholder="اسم العميل">
+        <input id="phone" placeholder="رقم الهاتف">
+        <input id="device" placeholder="نوع الجهاز">
+        <input id="orderId" placeholder="رقم الطلب">
+        <input id="days" type="number" placeholder="مدة العمل بالأيام">
+        <button id="saveBtn" onclick="saveOrder()">حفظ الطلب الجديد</button>
+        <hr style="border: 0.5px solid #333; margin: 20px 0;">
+        <table id="table">
+            <tr><th>الطلب</th><th>العميل</th><th>الحالة</th></tr>
+        </table>
+    </div>
+
+    <div id="client-ui" style="display:none;">
+        <div id="receipt-content" class="receipt">
+            <h2 style="color:var(--primary); margin:0;">إيصال تتبع صيانة</h2>
+            <p id="r-order" style="font-size: 13px; color: #777; margin-bottom: 20px;"></p>
+            
+            <p style="margin: 5px 0;">👤 العميل: <b id="r-name"></b></p>
+            <p style="margin: 5px 0;">📱 الجهاز: <b id="r-device"></b></p>
+            <p style="margin: 5px 0;">📊 الحالة: <b id="r-status" style="color:var(--primary)"></b></p>
+            
+            <p style="margin-top: 20px; font-weight: bold; color: #444;">⏳ الوقت المتبقي للإنجاز:</p>
+            
+            <div id="timer" class="timer-container">
+                <div class="timer-segment"><span id="days-val" class="timer-num">0</span><span class="timer-label">يوم</span></div>
+                <div class="timer-segment"><span id="hours-val" class="timer-num">0</span><span class="timer-label">ساعة</span></div>
+                <div class="timer-segment"><span id="mins-val" class="timer-num">0</span><span class="timer-label">دقيقة</span></div>
+                <div class="timer-segment"><span id="secs-val" class="timer-num">0</span><span class="timer-label">ثانية</span></div>
+            </div>
+
+            <div id="qrcode" style="margin-top: 15px;"></div>
+        </div>
+
+        <div id="admin-controls" style="display:none; margin-top: 20px;">
+            <select id="statusSelect">
+                <option value="قيد العمل">قيد العمل</option>
+                <option value="مكتمل">مكتمل</option>
+                <option value="مرفوض">مرفوض</option>
+            </select>
+            <button onclick="updateStatus()">تحديث حالة الطلب ✅</button>
+            <button onclick="editOrder()" style="background:orange">تعديل البيانات فوق ✏️</button>
+            <button onclick="sendWA()" style="background:#25D366">إرسال واتساب للعميل 💬</button>
+            <button onclick="downloadImg()" style="background:#5856d6">تحميل الإيصال كصورة 📸</button>
+            <button class="btn-delete" onclick="deleteOrder()">حذف الطلب نهائياً 🗑️</button>
+            <button onclick="location.reload()" style="background:#444">الرجوع للقائمة الرئيسية</button>
+        </div>
+    </div>
+</div>
+
+<script>
+const firebaseConfig = {
+    apiKey: "AIzaSyCUGkh9EaxTa521TH9AZYdi19PgisVhy8c",
+    authDomain: "icloud-unlock-e3815.firebaseapp.com",
+    databaseURL: "https://icloud-unlock-e3815-default-rtdb.firebaseio.com",
+    projectId: "icloud-unlock-e3815",
+    storageBucket: "icloud-unlock-e3815.firebasestorage.app",
+    messagingSenderId: "940991599773",
+    appId: "1:940991599773:web:8e2ee5f80342be4bf2b074"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.database();
+let currentId = "";
+let countdown;
+
+function clientExit() { window.location.replace("https://www.google.com"); }
+
+function saveOrder() {
+    const id = document.getElementById("orderId").value;
+    if(!id) return alert("ادخل رقم الطلب");
+    
+    const data = {
+        name: document.getElementById("name").value,
+        phone: document.getElementById("phone").value,
+        device: document.getElementById("device").value,
+        days: parseFloat(document.getElementById("days").value) || 0,
+        status: "قيد العمل",
+        time: Date.now()
+    };
+    
+    db.ref('orders/' + id).set(data).then(() => {
+        alert("تم الحفظ بنجاح");
+        location.reload();
+    });
+}
+
+function showOrder(id, role) {
+    currentId = id;
+    db.ref('orders/' + id).once('value').then(snap => {
+        const v = snap.val();
+        if(!v) return;
+
+        if(role === 'client') {
+            document.getElementById("admin-ui").remove();
+            document.getElementById("exitBtn").style.display = "block";
+        } else {
+            document.getElementById("admin-ui").style.display = "none";
+            document.getElementById("admin-controls").style.display = "block";
+        }
+
+        document.getElementById("client-ui").style.display = "block";
+        document.getElementById("r-order").innerText = "رقم الطلب: #" + id;
+        document.getElementById("r-name").innerText = v.name || "---";
+        document.getElementById("r-device").innerText = v.device || "---";
+        document.getElementById("r-status").innerText = v.status || "قيد العمل";
+
+        startTimer(v.time, v.days);
+        
+        document.getElementById("qrcode").innerHTML = "";
+        new QRCode(document.getElementById("qrcode"), {
+            text: window.location.href.split('?')[0] + "?order=" + id,
+            width: 120, height: 120
+        });
+    });
+}
+
+function startTimer(start, days) {
+    if(countdown) clearInterval(countdown);
+    const end = start + (days * 24 * 60 * 60 * 1000);
+    
+    const update = () => {
+        const now = Date.now();
+        const diff = end - now;
+        
+        if(diff <= 0) {
+            document.getElementById("timer").innerHTML = "<h3 style='color:green; margin: 20px auto;'>الطلب جاهز للاستلام!</h3>";
+            clearInterval(countdown);
+            return;
+        }
+
+        const d = Math.floor(diff / 86400000);
+        const h = Math.floor((diff % 86400000) / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        
+        document.getElementById("days-val").innerText = d;
+        document.getElementById("hours-val").innerText = h;
+        document.getElementById("mins-val").innerText = m;
+        document.getElementById("secs-val").innerText = s;
+    };
+
+    update();
+    countdown = setInterval(update, 1000);
+}
+
+function updateStatus() {
+    const s = document.getElementById("statusSelect").value;
+    db.ref('orders/' + currentId).update({status: s}).then(() => alert("تم تحديث الحالة"));
+}
+
+function deleteOrder() {
+    if(confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟")) {
+        db.ref('orders/' + currentId).remove().then(() => {
+            alert("تم حذف الطلب بنجاح");
+            location.reload();
+        });
+    }
+}
+
+function editOrder() {
+    db.ref('orders/' + currentId).once('value').then(snap => {
+        const v = snap.val();
+        document.getElementById("name").value = v.name;
+        document.getElementById("phone").value = v.phone;
+        document.getElementById("device").value = v.device;
+        document.getElementById("orderId").value = currentId;
+        document.getElementById("orderId").disabled = true;
+        document.getElementById("days").value = v.days;
+        
+        document.getElementById("admin-ui").style.display = "block";
+        document.getElementById("client-ui").style.display = "none";
+        document.getElementById("saveBtn").innerText = "تحديث البيانات الآن";
+        window.scrollTo({top: 0, behavior: 'smooth'});
+    });
+}
+
+function sendWA() {
+    db.ref('orders/' + currentId).once('value').then(snap => {
+        const v = snap.val();
+        const url = window.location.href.split('?')[0] + "?order=" + currentId;
+        const msg = `مرحباً ${v.name}، حالة طلبك هي: ${v.status}. يمكنك المتابعة من هنا: ${url}`;
+        window.open(`https://wa.me/${v.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`);
+    });
+}
+
+function downloadImg() {
+    html2canvas(document.querySelector("#receipt-content")).then(canvas => {
+        let link = document.createElement("a");
+        link.download = `Receipt_${currentId}.png`;
+        link.href = canvas.toDataURL();
+        link.click();
+    });
+}
+
+window.onload = () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const order = urlParams.get('order');
+    if(order) {
+        showOrder(order, 'client');
+    } else {
+        db.ref('orders').on('value', snap => {
+            const t = document.getElementById("table");
+            t.innerHTML = "<tr><th>الطلب</th><th>العميل</th><th>الحالة</th></tr>";
+            snap.forEach(child => {
+                const v = child.val();
+                const tr = document.createElement("tr");
+                tr.innerHTML = `<td>${child.key}</td><td>${v.name}</td><td>${v.status}</td>`;
+                tr.onclick = () => showOrder(child.key, 'admin');
+                t.appendChild(tr);
+            });
+        });
+    }
+};
+</script>
+</body>
+</html>
