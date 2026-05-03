@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Device Service Pro - Full Edition</title>
+    <title>Device Service Pro</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
@@ -17,12 +17,13 @@
         input, select, textarea { background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; text-align: right; }
         button { background: var(--primary); color: #fff; font-weight: bold; cursor: pointer; transition: 0.3s; }
         
-        .manage-btn { background: #2c2c2e; border: 1px solid #3a3a3c; margin-top: 15px; color: #aaa; }
+        .manage-btn { background: #2c2c2e; border: 1px solid #3a3a3c; margin-top: 10px; color: #aaa; }
+        .back-home-btn { background: #444; margin-top: 10px; display: block; }
+        
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); }
         .modal-content { background: #1c1c1e; margin: 5% auto; padding: 20px; border-radius: 20px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid #333; }
         .customer-item { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: right; border-right: 4px solid var(--primary); cursor: pointer; }
         
-        /* تنسيق الإيصال */
         .receipt { background: white; color: black; padding: 20px; border-radius: 15px; margin-top: 15px; text-align: right; position: relative; }
         .finance-badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold; margin-top: 5px; }
         .paid { background: #d1e7dd; color: #0f5132; }
@@ -33,14 +34,21 @@
         .timer-segment { background: #f4f4f4; padding: 8px; border-radius: 8px; flex: 1; border-bottom: 3px solid var(--primary); }
         .timer-num { display: block; font-size: 20px; font-weight: 900; color: #000; }
         .timer-label { font-size: 10px; color: #666; }
+
+        #error-ui { display: none; padding: 40px 20px; }
     </style>
 </head>
 <body>
 
 <div class="card">
+    <div id="error-ui">
+        <h1 style="font-size: 50px;">⚠️</h1>
+        <h2>عذراً، الطلب غير موجود</h2>
+        <p style="color: #888;">ربما تم حذف الطلب أو أن الرابط غير صحيح. يرجى التواصل مع الدعم الفني.</p>
+    </div>
+
     <div id="admin-ui">
         <h2 style="margin: 10px 0;">📱 Device Service Pro</h2>
-        
         <div id="form-container">
             <input id="orderId" placeholder="رقم الطلب (Order ID)">
             <input id="name" placeholder="اسم العميل">
@@ -49,7 +57,7 @@
             <input id="imei" placeholder="السيريال أو IMEI">
             <div style="display:flex; gap:5px;">
                 <input id="days" type="number" placeholder="مدة الأيام" style="flex:1;">
-                <input id="cost" type="number" placeholder="قيمة التكلفة" style="flex:1;">
+                <input id="cost" type="number" placeholder="التكلفة" style="flex:1;">
             </div>
             <select id="paymentStatus">
                 <option value="غير مدفوع">غير مدفوع ❌</option>
@@ -59,6 +67,7 @@
             <textarea id="notes" placeholder="ملاحظات فنية"></textarea>
             <button onclick="saveOrder()">حفظ الطلب ✅</button>
             <button class="manage-btn" onclick="toggleModal(true)">إدارة العملاء 👥</button>
+            <button id="admin-back-btn" class="back-home-btn" style="display:none;" onclick="location.reload()">🏠 رجوع للرئيسية</button>
         </div>
     </div>
 
@@ -102,7 +111,7 @@
             <button onclick="sendWA()" style="background:#25D366">إرسال للعميل 💬</button>
             <button onclick="downloadImg()" style="background:#5856d6">حفظ كصورة 📸</button>
             <button onclick="deleteOrder()" style="background:var(--danger)">حذف الطلب 🗑️</button>
-            <button onclick="location.reload()" style="background:#444">رجوع للرئيسية</button>
+            <button class="back-home-btn" onclick="location.reload()">🏠 رجوع للرئيسية</button>
         </div>
     </div>
 </div>
@@ -118,6 +127,7 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 let currentId = "";
 let countdown;
+const isClient = new URLSearchParams(window.location.search).get('order');
 
 function toggleModal(show) {
     document.getElementById("customerModal").style.display = show ? "block" : "none";
@@ -168,11 +178,26 @@ function saveOrder() {
 function showOrder(id, role) {
     currentId = id;
     db.ref('orders/' + id).once('value').then(snap => {
+        if(!snap.exists()) {
+            if(isClient) {
+                document.getElementById("admin-ui").style.display = "none";
+                document.getElementById("client-ui").style.display = "none";
+                document.getElementById("error-ui").style.display = "block";
+            } else {
+                alert("هذا الطلب لم يعد موجوداً");
+                location.reload();
+            }
+            return;
+        }
+
         const v = snap.val();
         document.getElementById("admin-ui").style.display = "none";
         document.getElementById("client-ui").style.display = "block";
-        if(role === 'admin') document.getElementById("admin-controls").style.display = "block";
         
+        if(role === 'admin') {
+            document.getElementById("admin-controls").style.display = "block";
+        }
+
         document.getElementById("r-order").innerText = "رقم الطلب: #" + id;
         document.getElementById("r-name").innerText = v.name;
         document.getElementById("r-device").innerText = v.device;
@@ -202,14 +227,11 @@ function editOrderData() {
         document.getElementById("cost").value = v.cost;
         document.getElementById("paymentStatus").value = v.payStatus || "غير مدفوع";
         document.getElementById("notes").value = v.notes || "";
+        
         document.getElementById("admin-ui").style.display = "block";
         document.getElementById("client-ui").style.display = "none";
+        document.getElementById("admin-back-btn").style.display = "block"; // إظهار زر الرجوع فقط في حالة التعديل
     });
-}
-
-function copyText(id) {
-    const text = document.getElementById(id).innerText;
-    navigator.clipboard.writeText(text).then(() => alert("تم النسخ: " + text));
 }
 
 function startTimer(start, days) {
@@ -229,16 +251,21 @@ function startTimer(start, days) {
     update(); countdown = setInterval(update, 1000);
 }
 
+function copyText(id) {
+    const text = document.getElementById(id).innerText;
+    navigator.clipboard.writeText(text).then(() => alert("تم النسخ: " + text));
+}
+
 function updateStatus() {
     const s = document.getElementById("statusSelect").value;
-    db.ref('orders/' + currentId).update({status: s}).then(() => alert("تم التحديث"));
+    db.ref('orders/' + currentId).update({status: s}).then(() => alert("تم تحديث الحالة"));
 }
 
 function sendWA() {
     db.ref('orders/' + currentId).once('value').then(snap => {
         const v = snap.val();
         const url = window.location.href.split('?')[0] + "?order=" + currentId;
-        const msg = `طلبك #${currentId} (${v.device}) حالته: ${v.status}.\nالسيريال: ${v.imei}\nالتكلفة: ${v.cost}\nالتفاصيل: ${url}`;
+        const msg = `مرحباً ${v.name}، طلبك #${currentId} حالته: ${v.status}.\nالتفاصيل: ${url}`;
         window.open(`https://wa.me/${v.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
     });
 }
@@ -253,14 +280,18 @@ function downloadImg() {
 }
 
 function deleteOrder() {
-    if(confirm("حذف الطلب نهائياً؟")) {
-        db.ref('orders/' + currentId).remove().then(() => location.reload());
+    if(confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ سيظهر للعميل أن الطلب غير موجود.")) {
+        db.ref('orders/' + currentId).remove().then(() => {
+            alert("تم حذف الطلب بنجاح");
+            location.reload();
+        });
     }
 }
 
 window.onload = () => {
-    const order = new URLSearchParams(window.location.search).get('order');
-    if(order) showOrder(order, 'client');
+    if(isClient) {
+        showOrder(isClient, 'client');
+    }
 };
 </script>
 </body>
