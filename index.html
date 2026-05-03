@@ -16,25 +16,21 @@
         input, select, button, textarea { width: 100%; padding: 12px; margin: 5px 0; border-radius: 12px; border: none; font-size: 16px; box-sizing: border-box; }
         input, select, textarea { background: #2c2c2e; color: #fff; border: 1px solid #3a3a3c; text-align: right; }
         button { background: var(--primary); color: #fff; font-weight: bold; cursor: pointer; transition: 0.3s; }
-        
         .manage-btn { background: #2c2c2e; border: 1px solid #3a3a3c; margin-top: 10px; color: #aaa; }
         .back-home-btn { background: #444; margin-top: 10px; display: block; }
-        
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); }
         .modal-content { background: #1c1c1e; margin: 5% auto; padding: 20px; border-radius: 20px; width: 90%; max-height: 80vh; overflow-y: auto; border: 1px solid #333; }
         .customer-item { background: #2c2c2e; padding: 15px; border-radius: 12px; margin-bottom: 10px; text-align: right; border-right: 4px solid var(--primary); cursor: pointer; }
-        
         .receipt { background: white; color: black; padding: 20px; border-radius: 15px; margin-top: 15px; text-align: right; position: relative; }
         .finance-badge { display: inline-block; padding: 4px 10px; border-radius: 8px; font-size: 12px; font-weight: bold; margin-top: 5px; }
         .paid { background: #d1e7dd; color: #0f5132; }
         .unpaid { background: #f8d7da; color: #842029; }
+        .success-box { background: #d1e7dd; border: 1px solid #0f5132; color: #0f5132; padding: 10px; border-radius: 10px; margin-top: 10px; font-weight: bold; text-align: center; display: none; }
         .copy-badge { background: #eee; font-size: 10px; padding: 2px 6px; border-radius: 5px; cursor: pointer; margin-right: 5px; border: 1px solid #ccc; }
-        
         .timer-container { display: flex; justify-content: center; gap: 5px; margin: 15px 0; direction: ltr; }
         .timer-segment { background: #f4f4f4; padding: 8px; border-radius: 8px; flex: 1; border-bottom: 3px solid var(--primary); }
         .timer-num { display: block; font-size: 20px; font-weight: 900; color: #000; }
         .timer-label { font-size: 10px; color: #666; }
-
         #error-ui { display: none; padding: 40px 20px; }
     </style>
 </head>
@@ -44,7 +40,7 @@
     <div id="error-ui">
         <h1 style="font-size: 50px;">⚠️</h1>
         <h2>عذراً، الطلب غير موجود</h2>
-        <p style="color: #888;">ربما تم حذف الطلب أو أن الرابط غير صحيح. يرجى التواصل مع الدعم الفني.</p>
+        <p style="color: #888;">ربما تم حذف الطلب أو أن الرابط غير صحيح.</p>
     </div>
 
     <div id="admin-ui">
@@ -55,55 +51,31 @@
             <input id="phone" placeholder="رقم الهاتف">
             <input id="device" placeholder="نوع الجهاز">
             <input id="imei" placeholder="السيريال أو IMEI">
-            <div style="display:flex; gap:5px;">
-                <input id="days" type="number" placeholder="مدة الأيام" style="flex:1;">
-                <input id="cost" type="number" placeholder="التكلفة" style="flex:1;">
-            </div>
-            <select id="paymentStatus">
-                <option value="غير مدفوع">غير مدفوع ❌</option>
-                <option value="مدفوع">مدفوع ✅</option>
-                <option value="دفع جزئي">دفع جزئي 💰</option>
-            </select>
-            <textarea id="notes" placeholder="ملاحظات فنية"></textarea>
+            <div style="display:flex; gap:5px;"><input id="days" type="number" placeholder="الأيام" style="flex:1;"><input id="cost" type="number" placeholder="التكلفة" style="flex:1;"></div>
+            <select id="paymentStatus"><option value="غير مدفوع">غير مدفوع ❌</option><option value="مدفوع">مدفوع ✅</option><option value="دفع جزئي">دفع جزئي 💰</option></select>
+            <textarea id="notes" placeholder="ملاحظات فنية (خاصة بك)"></textarea>
             <button onclick="saveOrder()">حفظ الطلب ✅</button>
             <button class="manage-btn" onclick="toggleModal(true)">إدارة العملاء 👥</button>
             <button id="admin-back-btn" class="back-home-btn" style="display:none;" onclick="location.reload()">🏠 رجوع للرئيسية</button>
         </div>
     </div>
 
-    <div id="customerModal" class="modal">
-        <div class="modal-content">
-            <div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
-                <h3 style="margin:0;">قائمة العملاء</h3>
-                <button onclick="toggleModal(false)" style="background:var(--danger); width:auto; padding:5px 15px;">إغلاق</button>
-            </div>
-            <input id="modalSearch" onkeyup="filterModal()" placeholder="ابحث باسم العميل...">
-            <div id="modalList"></div>
-        </div>
-    </div>
+    <div id="customerModal" class="modal"><div class="modal-content"><div style="display:flex; justify-content: space-between; align-items: center; margin-bottom: 15px;"><h3 style="margin:0;">قائمة العملاء</h3><button onclick="toggleModal(false)" style="background:var(--danger); width:auto; padding:5px 15px;">إغلاق</button></div><input id="modalSearch" onkeyup="filterModal()" placeholder="ابحث باسم العميل..."><div id="modalList"></div></div></div>
 
     <div id="client-ui" style="display:none;">
         <div id="receipt-content" class="receipt">
             <h3 style="color:var(--primary); margin:0;">إيصال صيانة</h3>
-            <p id="r-order" style="font-size: 11px; color: #777;"></p>
-            <hr>
+            <p id="r-order" style="font-size: 11px; color: #777;"></p><hr>
             <p>👤 العميل: <b id="r-name"></b></p>
             <p>📱 الجهاز: <b id="r-device"></b></p>
             <p>🔢 السيريال: <b id="r-imei"></b> <span class="copy-badge" onclick="copyText('r-imei')">نسخ</span></p>
             <p>📊 الحالة: <b id="r-status"></b></p>
-            <hr>
+            <div id="client-success-msg" class="success-box">✅ تم إزالة قفل التنشيط، يمكنك استخدام جهازك الآن</div><hr>
             <p>💰 التكلفة: <b id="r-cost">0</b></p>
             <p>💳 حالة الدفع: <span id="r-payment" class="finance-badge"></span></p>
-            
-            <div id="timer" class="timer-container">
-                <div class="timer-segment"><span id="days-val" class="timer-num">0</span><span class="timer-label">يوم</span></div>
-                <div class="timer-segment"><span id="hours-val" class="timer-num">0</span><span class="timer-label">ساعة</span></div>
-                <div class="timer-segment"><span id="mins-val" class="timer-num">0</span><span class="timer-label">دقيقة</span></div>
-                <div class="timer-segment"><span id="secs-val" class="timer-num">0</span><span class="timer-label">ثانية</span></div>
-            </div>
+            <div id="timer" class="timer-container"><div class="timer-segment"><span id="days-val" class="timer-num">0</span><span class="timer-label">يوم</span></div><div class="timer-segment"><span id="hours-val" class="timer-num">0</span><span class="timer-label">ساعة</span></div><div class="timer-segment"><span id="mins-val" class="timer-num">0</span><span class="timer-label">دقيقة</span></div><div class="timer-segment"><span id="secs-val" class="timer-num">0</span><span class="timer-label">ثانية</span></div></div>
             <div id="qrcode" style="display:flex; justify-content:center; margin:10px 0;"></div>
         </div>
-
         <div id="admin-controls" style="display:none; margin-top: 15px;">
             <select id="statusSelect"><option value="قيد العمل">قيد العمل ⏳</option><option value="مكتمل">مكتمل ✅</option><option value="مرفوض">مرفوض ❌</option></select>
             <button onclick="updateStatus()">تحديث الحالة</button>
@@ -117,87 +89,32 @@
 </div>
 
 <script>
-const firebaseConfig = {
-    apiKey: "AIzaSyCUGkh9EaxTa521TH9AZYdi19PgisVhy8c",
-    authDomain: "icloud-unlock-e3815.firebaseapp.com",
-    databaseURL: "https://icloud-unlock-e3815-default-rtdb.firebaseio.com",
-    projectId: "icloud-unlock-e3815",
-};
+const firebaseConfig = { apiKey: "AIzaSyCUGkh9EaxTa521TH9AZYdi19PgisVhy8c", authDomain: "icloud-unlock-e3815.firebaseapp.com", databaseURL: "https://icloud-unlock-e3815-default-rtdb.firebaseio.com", projectId: "icloud-unlock-e3815" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
-let currentId = "";
-let countdown;
+let currentId = "", countdown;
 const isClient = new URLSearchParams(window.location.search).get('order');
 
-function toggleModal(show) {
-    document.getElementById("customerModal").style.display = show ? "block" : "none";
-    if(show) loadModalData();
-}
-
-function loadModalData() {
-    db.ref('orders').once('value').then(snap => {
-        const list = document.getElementById("modalList");
-        list.innerHTML = "";
-        snap.forEach(child => {
-            const v = child.val();
-            const div = document.createElement("div");
-            div.className = "customer-item";
-            div.innerHTML = `<b>${v.name}</b><br><small>${v.device} | #${child.key}</small>`;
-            div.onclick = () => { toggleModal(false); showOrder(child.key, 'admin'); };
-            list.appendChild(div);
-        });
-    });
-}
-
-function filterModal() {
-    let val = document.getElementById("modalSearch").value.toLowerCase();
-    let items = document.getElementsByClassName("customer-item");
-    for(let i=0; i<items.length; i++) {
-        items[i].style.display = items[i].innerText.toLowerCase().includes(val) ? "" : "none";
-    }
-}
+function toggleModal(show) { document.getElementById("customerModal").style.display = show ? "block" : "none"; if(show) loadModalData(); }
+function loadModalData() { db.ref('orders').once('value').then(snap => { const list = document.getElementById("modalList"); list.innerHTML = ""; snap.forEach(child => { const v = child.val(); const div = document.createElement("div"); div.className = "customer-item"; div.innerHTML = `<b>${v.name}</b><br><small>${v.device} | #${child.key}</small>`; div.onclick = () => { toggleModal(false); showOrder(child.key, 'admin'); }; list.appendChild(div); }); }); }
+function filterModal() { let val = document.getElementById("modalSearch").value.toLowerCase(); let items = document.getElementsByClassName("customer-item"); for(let i=0; i<items.length; i++) items[i].style.display = items[i].innerText.toLowerCase().includes(val) ? "" : "none"; }
 
 function saveOrder() {
     const id = document.getElementById("orderId").value;
     if(!id) return alert("يرجى إدخال رقم الطلب");
-    const data = {
-        name: document.getElementById("name").value,
-        phone: document.getElementById("phone").value,
-        device: document.getElementById("device").value,
-        imei: document.getElementById("imei").value,
-        days: parseFloat(document.getElementById("days").value) || 0,
-        cost: document.getElementById("cost").value || 0,
-        payStatus: document.getElementById("paymentStatus").value,
-        notes: document.getElementById("notes").value || "",
-        status: "قيد العمل",
-        time: Date.now()
-    };
-    db.ref('orders/' + id).update(data).then(() => { alert("تم الحفظ بنجاح"); location.reload(); });
+    const data = { name: document.getElementById("name").value, phone: document.getElementById("phone").value, device: document.getElementById("device").value, imei: document.getElementById("imei").value, days: parseFloat(document.getElementById("days").value) || 0, cost: document.getElementById("cost").value || 0, payStatus: document.getElementById("paymentStatus").value, notes: document.getElementById("notes").value || "", status: "قيد العمل", time: Date.now() };
+    db.ref('orders/' + id).update(data).then(() => { alert("تم الحفظ"); location.reload(); });
 }
 
 function showOrder(id, role) {
     currentId = id;
-    db.ref('orders/' + id).once('value').then(snap => {
-        if(!snap.exists()) {
-            if(isClient) {
-                document.getElementById("admin-ui").style.display = "none";
-                document.getElementById("client-ui").style.display = "none";
-                document.getElementById("error-ui").style.display = "block";
-            } else {
-                alert("هذا الطلب لم يعد موجوداً");
-                location.reload();
-            }
-            return;
-        }
-
+    db.ref('orders/' + id).on('value', snap => {
+        if(!snap.exists()) { if(isClient) { document.getElementById("admin-ui").style.display="none"; document.getElementById("client-ui").style.display="none"; document.getElementById("error-ui").style.display="block"; } return; }
         const v = snap.val();
         document.getElementById("admin-ui").style.display = "none";
         document.getElementById("client-ui").style.display = "block";
+        if(role === 'admin') document.getElementById("admin-controls").style.display = "block";
         
-        if(role === 'admin') {
-            document.getElementById("admin-controls").style.display = "block";
-        }
-
         document.getElementById("r-order").innerText = "رقم الطلب: #" + id;
         document.getElementById("r-name").innerText = v.name;
         document.getElementById("r-device").innerText = v.device;
@@ -206,31 +123,49 @@ function showOrder(id, role) {
         document.getElementById("r-cost").innerText = v.cost + " شيكل";
         
         const payEl = document.getElementById("r-payment");
-        payEl.innerText = v.payStatus || "غير مدفوع";
+        payEl.innerText = v.payStatus;
         payEl.className = "finance-badge " + (v.payStatus === "مدفوع" ? "paid" : "unpaid");
 
-        startTimer(v.time, v.days);
+        // إظهار رسالة النجاح التلقائية للعميل إذا كانت الحالة مكتمل
+        const successBox = document.getElementById("client-success-msg");
+        if(v.status === "مكتمل") {
+            successBox.style.display = "block";
+            document.getElementById("timer").style.display = "none";
+        } else {
+            successBox.style.display = "none";
+            startTimer(v.time, v.days);
+        }
+
         document.getElementById("qrcode").innerHTML = "";
         new QRCode(document.getElementById("qrcode"), { text: window.location.href.split('?')[0] + "?order=" + id, width: 100, height: 100 });
     });
+}
+
+function updateStatus() {
+    const s = document.getElementById("statusSelect").value;
+    db.ref('orders/' + currentId).update({status: s}).then(() => alert("تم التحديث"));
 }
 
 function editOrderData() {
     db.ref('orders/' + currentId).once('value').then(snap => {
         const v = snap.val();
         document.getElementById("orderId").value = currentId;
-        document.getElementById("name").value = v.name;
-        document.getElementById("phone").value = v.phone;
-        document.getElementById("device").value = v.device;
-        document.getElementById("imei").value = v.imei;
-        document.getElementById("days").value = v.days;
-        document.getElementById("cost").value = v.cost;
-        document.getElementById("paymentStatus").value = v.payStatus || "غير مدفوع";
-        document.getElementById("notes").value = v.notes || "";
-        
-        document.getElementById("admin-ui").style.display = "block";
-        document.getElementById("client-ui").style.display = "none";
-        document.getElementById("admin-back-btn").style.display = "block"; // إظهار زر الرجوع فقط في حالة التعديل
+        document.getElementById("name").value = v.name; document.getElementById("phone").value = v.phone;
+        document.getElementById("device").value = v.device; document.getElementById("imei").value = v.imei;
+        document.getElementById("days").value = v.days; document.getElementById("cost").value = v.cost;
+        document.getElementById("paymentStatus").value = v.payStatus; document.getElementById("notes").value = v.notes;
+        document.getElementById("admin-ui").style.display = "block"; document.getElementById("client-ui").style.display = "none";
+        document.getElementById("admin-back-btn").style.display = "block";
+    });
+}
+
+function downloadImg() {
+    html2canvas(document.getElementById("receipt-content"), { scale: 2 }).then(canvas => {
+        try {
+            const imageData = canvas.toDataURL("image/png");
+            const win = window.open("");
+            win.document.write(`<html><body style="margin:0; background:#000; display:flex; flex-direction:column; align-items:center; justify-content:center; height:100vh; color:white; font-family:sans-serif;"><img src="${imageData}" style="max-width:90%; border-radius:10px;"><p style="margin-top:20px;">📸 يمكنك أخذ لقطة شاشة للإيصال</p><button onclick="window.close()" style="padding:10px 20px; background:red; color:white; border:none; border-radius:8px;">إغلاق</button></body></html>`);
+        } catch (e) { alert("يرجى أخذ لقطة شاشة يدوياً"); }
     });
 }
 
@@ -239,10 +174,7 @@ function startTimer(start, days) {
     const end = start + (days * 24 * 60 * 60 * 1000);
     const update = () => {
         const diff = end - Date.now();
-        if(diff <= 0) {
-            document.getElementById("timer").innerHTML = "<h3 style='color:var(--success)'>✅ الجهاز جاهز للاستلام</h3>";
-            return clearInterval(countdown);
-        }
+        if(diff <= 0) { document.getElementById("timer").innerHTML = "<h3 style='color:var(--success)'>✅ الجهاز جاهز للاستلام</h3>"; return clearInterval(countdown); }
         document.getElementById("days-val").innerText = Math.floor(diff / 86400000);
         document.getElementById("hours-val").innerText = Math.floor((diff % 86400000) / 3600000);
         document.getElementById("mins-val").innerText = Math.floor((diff % 3600000) / 60000);
@@ -251,48 +183,11 @@ function startTimer(start, days) {
     update(); countdown = setInterval(update, 1000);
 }
 
-function copyText(id) {
-    const text = document.getElementById(id).innerText;
-    navigator.clipboard.writeText(text).then(() => alert("تم النسخ: " + text));
-}
+function copyText(id) { const text = document.getElementById(id).innerText; navigator.clipboard.writeText(text).then(() => alert("تم النسخ")); }
+function sendWA() { db.ref('orders/' + currentId).once('value').then(snap => { const v = snap.val(); const url = window.location.href.split('?')[0] + "?order=" + currentId; const msg = `مرحباً ${v.name}، طلبك #${currentId} حالته: ${v.status}.\nالتفاصيل: ${url}`; window.open(`https://wa.me/${v.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank'); }); }
+function deleteOrder() { if(confirm("حذف نهائي؟")) db.ref('orders/' + currentId).remove().then(() => location.reload()); }
 
-function updateStatus() {
-    const s = document.getElementById("statusSelect").value;
-    db.ref('orders/' + currentId).update({status: s}).then(() => alert("تم تحديث الحالة"));
-}
-
-function sendWA() {
-    db.ref('orders/' + currentId).once('value').then(snap => {
-        const v = snap.val();
-        const url = window.location.href.split('?')[0] + "?order=" + currentId;
-        const msg = `مرحباً ${v.name}، طلبك #${currentId} حالته: ${v.status}.\nالتفاصيل: ${url}`;
-        window.open(`https://wa.me/${v.phone.replace(/\D/g,'')}?text=${encodeURIComponent(msg)}`, '_blank');
-    });
-}
-
-function downloadImg() {
-    html2canvas(document.getElementById("receipt-content"), { scale: 3 }).then(canvas => {
-        const link = document.createElement("a");
-        link.download = `Receipt_${currentId}.png`;
-        link.href = canvas.toDataURL();
-        link.click();
-    });
-}
-
-function deleteOrder() {
-    if(confirm("هل أنت متأكد من حذف هذا الطلب نهائياً؟ سيظهر للعميل أن الطلب غير موجود.")) {
-        db.ref('orders/' + currentId).remove().then(() => {
-            alert("تم حذف الطلب بنجاح");
-            location.reload();
-        });
-    }
-}
-
-window.onload = () => {
-    if(isClient) {
-        showOrder(isClient, 'client');
-    }
-};
+window.onload = () => { if(isClient) showOrder(isClient, 'client'); };
 </script>
 </body>
 </html>
