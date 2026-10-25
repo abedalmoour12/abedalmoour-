@@ -89,7 +89,7 @@
 </div>
 
 <script>
-const firebaseConfig = { apiKey: "AIzaSyCUGkh9EaxTa521TH9AZYdi19PgisVhy8c", authDomain: "icloud-unlock-e3815.firebaseapp.com", databaseURL: "https://icloud-unlock-e3815-default-rtdb.firebaseio.com", projectId: "icloud-unlock-e3815" };
+const firebaseConfig = { apiKey: "AIzaSyCUGkh9EaxTa521TH9AZYdi19PgisVhy8c", authDomain: "abedalmour-aba3e.firebaseapp.com", databaseURL: "https://abedalmour-aba3e-default-rtdb.firebaseio.com", projectId: "abedalmour-aba3e" };
 firebase.initializeApp(firebaseConfig);
 const db = firebase.database();
 let currentId = "", countdown;
@@ -126,7 +126,6 @@ function showOrder(id, role) {
         payEl.innerText = v.payStatus;
         payEl.className = "finance-badge " + (v.payStatus === "مدفوع" ? "paid" : "unpaid");
 
-        // إظهار رسالة النجاح التلقائية للعميل إذا كانت الحالة مكتمل
         const successBox = document.getElementById("client-success-msg");
         if(v.status === "مكتمل") {
             successBox.style.display = "block";
