@@ -126,6 +126,7 @@ function showOrder(id, role) {
         payEl.innerText = v.payStatus;
         payEl.className = "finance-badge " + (v.payStatus === "مدفوع" ? "paid" : "unpaid");
 
+        // إظهار رسالة النجاح التلقائية للعميل إذا كانت الحالة مكتمل
         const successBox = document.getElementById("client-success-msg");
         if(v.status === "مكتمل") {
             successBox.style.display = "block";
